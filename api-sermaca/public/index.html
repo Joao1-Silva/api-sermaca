@@ -1,0 +1,803 @@
+﻿<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Endpoint Explorer</title>
+  <style>
+    :root {
+      --bg-1: #04141b;
+      --bg-2: #0b2531;
+      --panel: #0b1d26cc;
+      --line: #37f3ff66;
+      --line-strong: #37f3ff;
+      --text: #dffcff;
+      --muted: #90c7ce;
+      --ok: #31e27f;
+      --warn: #ffb648;
+      --err: #ff6a75;
+      --accent: #00d9ff;
+      --code-bg: #04131a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: Bahnschrift, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background:
+        radial-gradient(circle at 12% 8%, #1d6d7f55 0%, #0000 48%),
+        radial-gradient(circle at 88% 0%, #0070a433 0%, #0000 38%),
+        linear-gradient(130deg, var(--bg-1), var(--bg-2));
+      padding: 20px;
+    }
+
+    .layout {
+      max-width: 1500px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 14px 24px #00000040, inset 0 0 0 1px #ffffff06;
+    }
+
+    .header {
+      display: grid;
+      gap: 8px;
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.2rem, 2vw, 1.9rem);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #d6fbff;
+    }
+
+    .title code {
+      color: #9ce7f2;
+      font-size: 0.9rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 6px 12px;
+      border: 1px solid #8af7ff55;
+      background: #07161c;
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.02em;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--warn);
+      box-shadow: 0 0 10px #ffb64888;
+    }
+
+    .dot.ok {
+      background: var(--ok);
+      box-shadow: 0 0 10px #31e27f88;
+    }
+
+    .dot.err {
+      background: var(--err);
+      box-shadow: 0 0 10px #ff6a7588;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(150px, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input,
+    select {
+      width: 100%;
+      border-radius: 9px;
+      border: 1px solid #75e7ff55;
+      background: #04141b;
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 0.93rem;
+      font-family: "Consolas", "Cascadia Mono", monospace;
+    }
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 38px;
+      border-radius: 9px;
+      border: 1px solid #75e7ff55;
+      background: #04141b;
+      padding: 0 10px;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button {
+      border: 1px solid #79e8ff77;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #0f3a4b, #092935);
+      color: #d5f7ff;
+      padding: 9px 12px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: #b4fbff;
+      box-shadow: 0 8px 16px #00000044;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .secondary {
+      background: linear-gradient(180deg, #2b1f0f, #1b1309);
+      border-color: #f2bc5b55;
+      color: #ffdca4;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      display: grid;
+      gap: 10px;
+      border-radius: 12px;
+      border: 1px solid #7beeff40;
+      background: #061820c7;
+      padding: 12px;
+    }
+
+    .card-head {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+    }
+
+    .method {
+      border-radius: 6px;
+      padding: 4px 7px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      border: 1px solid #74f8ff55;
+      color: #8bf6ff;
+      background: #09202a;
+      text-align: center;
+      min-width: 54px;
+    }
+
+    .path {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #c7f8ff;
+      font-size: 0.86rem;
+      font-family: "Consolas", "Cascadia Mono", monospace;
+      border-radius: 8px;
+      border: 1px solid #6be4ff2b;
+      background: #05151c;
+      padding: 6px 8px;
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .card-meta code {
+      color: #afedff;
+      font-size: 0.75rem;
+      word-break: break-all;
+    }
+
+    pre {
+      margin: 0;
+      min-height: 130px;
+      max-height: 340px;
+      overflow: auto;
+      border-radius: 8px;
+      border: 1px solid #5ce4ff3b;
+      background: var(--code-bg);
+      padding: 10px;
+      color: #cbf5ff;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      font-family: "Cascadia Mono", Consolas, monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 1180px) {
+      .controls {
+        grid-template-columns: repeat(3, minmax(150px, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 12px;
+      }
+
+      .controls {
+        grid-template-columns: repeat(2, minmax(130px, 1fr));
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card-head {
+        grid-template-columns: 1fr;
+      }
+
+      .method,
+      .path {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <section class="panel header">
+      <div class="title">
+        <h1>API Endpoint Explorer</h1>
+        <code>base: /api_aguilera</code>
+      </div>
+      <div class="actions">
+        <span class="badge" id="globalStatus"><span class="dot" id="globalDot"></span><span id="globalStatusText">Listo para consultar</span></span>
+        <span class="badge">Total endpoints: <strong id="totalEndpoints">0</strong></span>
+        <span class="badge">Ultima ejecucion: <strong id="lastRun">-</strong></span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="controls">
+        <div class="field">
+          <label for="fromTime">from (rangos)</label>
+          <input type="datetime-local" id="fromTime">
+        </div>
+        <div class="field">
+          <label for="toTime">to (rangos)</label>
+          <input type="datetime-local" id="toTime">
+        </div>
+        <div class="field">
+          <label for="stepMin">stepMin (/api/produccion)</label>
+          <select id="stepMin">
+            <option value="1">1 min</option>
+            <option value="10">10 min</option>
+            <option value="30">30 min</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="alpha">alpha (suavizado)</label>
+          <input type="number" id="alpha" min="0.01" max="1" step="0.01" value="0.05">
+        </div>
+        <div class="field">
+          <label for="maxRows">maxRows (cambios)</label>
+          <input type="number" id="maxRows" min="1" step="1" value="200">
+        </div>
+        <div class="field">
+          <label>smooth (/api/qm)</label>
+          <div class="check-row">
+            <input type="checkbox" id="smooth">
+            <span>usar smooth=1</span>
+          </div>
+        </div>
+      </div>
+      <div class="actions" style="margin-top:12px;">
+        <button id="fetchAllBtn">Consultar todos</button>
+        <button class="secondary" id="clearBtn">Limpiar resultados</button>
+        <span class="hint">Nota: los endpoints con rango usan la ventana seleccionada y `corrida-pozo` usa el mismo rango en formato `YYYY-MM-DD HH:mm:ss`.</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="actions">
+        <strong>Descarga CSV corrida-pozo (secuencia 20 min)</strong>
+        <code>/api/datos/corrida-pozo</code>
+      </div>
+      <div class="controls" style="margin-top:12px;">
+        <div class="field">
+          <label for="corridaFromTime">desde</label>
+          <input type="datetime-local" id="corridaFromTime">
+        </div>
+        <div class="field">
+          <label for="corridaToTime">hasta</label>
+          <input type="datetime-local" id="corridaToTime">
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button type="button" id="syncCorridaRangeBtn">Usar rango global</button>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button type="button" class="secondary" id="downloadCorridaCsvBtn">Descargar CSV</button>
+        </div>
+      </div>
+      <div class="actions" style="margin-top:12px;">
+        <span class="hint" id="corridaDownloadStatus">Listo para descargar.</span>
+      </div>
+      <div class="card-meta" style="margin-top:8px;">
+        <code id="corridaUrlPreview">URL: -</code>
+      </div>
+      <span class="hint">Columnas incluidas: fecha_hora, inv_liq, inv_gas, bsw_lab, temp_liq, presion_cabezal, presion_casing, pres_f_liq, diluente.</span>
+    </section>
+
+    <section class="panel">
+      <div class="grid" id="endpointGrid"></div>
+    </section>
+  </div>
+
+  <script>
+    const API_PREFIX = '/api_aguilera';
+
+    const ENDPOINTS = [
+      { key: 'health', method: 'GET', path: '/health', title: 'Health check' },
+      { key: 'status', method: 'GET', path: '/api/status', title: 'Estado API' },
+      { key: 'realtime_status', method: 'GET', path: '/api/realtime/status', title: 'Estado realtime' },
+      { key: 'realtime_bootstrap', method: 'GET', path: '/api/realtime/bootstrap', title: 'Bootstrap socket + ultimo' },
+      { key: 'test_db', method: 'GET', path: '/api/test-db', title: 'Test DB (JSON)', headers: { Accept: 'application/json' } },
+      { key: 'ultimo', method: 'GET', path: '/api/datos/ultimo', title: 'Ultimo registro' },
+      { key: 'databasefluxcy', method: 'GET', path: '/api/databasefluxcy', title: 'Serie databasefluxcy', params: ['from', 'to'] },
+      { key: 'produccion', method: 'GET', path: '/api/produccion', title: 'Produccion', params: ['from', 'to', 'stepMin'] },
+      { key: 'corrida_pozo', method: 'GET', path: '/api/datos/corrida-pozo', title: 'Corrida pozo CSV 20 min', params: ['fechaInicio', 'fechaFin'] },
+      { key: 'qm', method: 'GET', path: '/api/qm', title: 'Caudales suavizados', params: ['from', 'to', 'smooth', 'alpha'] },
+      { key: 'rho', method: 'GET', path: '/api/rho', title: 'Densidades', params: ['from', 'to'] },
+      { key: 'total', method: 'GET', path: '/api/total', title: 'Totales clockmeter' },
+      { key: 'vp', method: 'GET', path: '/api/vp', title: 'Fase gaseosa', params: ['from', 'to'] },
+      { key: 'qmr', method: 'GET', path: '/api/qmr', title: 'QM raw', params: ['from', 'to'] },
+      { key: 'pressures', method: 'GET', path: '/api/pressures', title: 'Presiones actuales' },
+      { key: 'rholiq', method: 'GET', path: '/api/rholiq', title: 'Rho liq + deltaP' },
+      { key: 'densidadapi', method: 'GET', path: '/api/densidadapi', title: 'Densidad a API' },
+      { key: 'clockmeter_qm', method: 'GET', path: '/api/clockmeter_qm', title: 'Clockmeter QM', params: ['alpha'] },
+      { key: 'clockmeter', method: 'GET', path: '/api/clockmeter', title: 'Clockmeter presion/temperatura' },
+      { key: 'setpvalve', method: 'GET', path: '/api/setpvalve', title: 'Setpoint valvula' },
+      { key: 'possvalve', method: 'GET', path: '/api/possvalve', title: 'Posicion valvula' },
+      { key: 'temp', method: 'GET', path: '/api/temp', title: 'Temperaturas' },
+      { key: 'drivgain', method: 'GET', path: '/api/drivgain', title: 'Drive gain' },
+      { key: 'bsw_lab_changes', method: 'GET', path: '/api/bsw_lab_changes', title: 'Cambios BSW lab', params: ['maxRows'] },
+      { key: 'densidad_lab_changes', method: 'GET', path: '/api/densidad_lab_changes', title: 'Cambios densidad lab', params: ['maxRows'] }
+    ];
+
+    const cardMap = new Map();
+    const endpointGrid = document.getElementById('endpointGrid');
+    const totalEndpoints = document.getElementById('totalEndpoints');
+    const lastRun = document.getElementById('lastRun');
+    const globalDot = document.getElementById('globalDot');
+    const globalStatusText = document.getElementById('globalStatusText');
+
+    const fromTimeInput = document.getElementById('fromTime');
+    const toTimeInput = document.getElementById('toTime');
+    const stepMinInput = document.getElementById('stepMin');
+    const alphaInput = document.getElementById('alpha');
+    const maxRowsInput = document.getElementById('maxRows');
+    const smoothInput = document.getElementById('smooth');
+    const corridaFromTimeInput = document.getElementById('corridaFromTime');
+    const corridaToTimeInput = document.getElementById('corridaToTime');
+    const corridaUrlPreview = document.getElementById('corridaUrlPreview');
+    const corridaDownloadStatus = document.getElementById('corridaDownloadStatus');
+    const syncCorridaRangeBtn = document.getElementById('syncCorridaRangeBtn');
+    const downloadCorridaCsvBtn = document.getElementById('downloadCorridaCsvBtn');
+
+    function toIsoString(dateTimeLocal) {
+      if (!dateTimeLocal) return '';
+      const date = new Date(dateTimeLocal);
+      if (Number.isNaN(date.getTime())) return '';
+      return date.toISOString();
+    }
+
+    function toSqlDateTime(dateTimeLocal) {
+      if (!dateTimeLocal) return '';
+      const date = new Date(dateTimeLocal);
+      if (Number.isNaN(date.getTime())) return '';
+
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      const h = String(date.getHours()).padStart(2, '0');
+      const min = String(date.getMinutes()).padStart(2, '0');
+      const s = String(date.getSeconds()).padStart(2, '0');
+      return y + '-' + m + '-' + d + ' ' + h + ':' + min + ':' + s;
+    }
+
+    function formatDateTimeLocal(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
+    }
+
+    function initRangeDefaults() {
+      const now = new Date();
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+      fromTimeInput.value = formatDateTimeLocal(oneHourAgo);
+      toTimeInput.value = formatDateTimeLocal(now);
+    }
+
+    function sanitizeFileStamp(dateTimeLocal) {
+      const stamp = toSqlDateTime(dateTimeLocal);
+      if (!stamp) return 'sin_fecha';
+      return stamp.replace(/[: ]/g, '-');
+    }
+
+    function buildCorridaPozoUrl() {
+      const url = new URL(API_PREFIX + '/api/datos/corrida-pozo', window.location.origin);
+      const fechaInicio = toSqlDateTime(corridaFromTimeInput.value);
+      const fechaFin = toSqlDateTime(corridaToTimeInput.value);
+
+      if (fechaInicio) url.searchParams.set('fechaInicio', fechaInicio);
+      if (fechaFin) url.searchParams.set('fechaFin', fechaFin);
+      return url;
+    }
+
+    function updateCorridaUrlPreview() {
+      const url = buildCorridaPozoUrl();
+      corridaUrlPreview.textContent = 'URL: ' + url.pathname + (url.search || '');
+    }
+
+    function syncCorridaRangeWithGlobal() {
+      corridaFromTimeInput.value = fromTimeInput.value;
+      corridaToTimeInput.value = toTimeInput.value;
+      updateCorridaUrlPreview();
+      corridaDownloadStatus.textContent = 'Rango de corrida sincronizado con el rango global.';
+    }
+
+    async function downloadCorridaPozoCsv() {
+      const fechaInicio = toSqlDateTime(corridaFromTimeInput.value);
+      const fechaFin = toSqlDateTime(corridaToTimeInput.value);
+
+      if (!fechaInicio || !fechaFin) {
+        corridaDownloadStatus.textContent = 'Selecciona fecha inicial y final para descargar.';
+        return;
+      }
+
+      const url = buildCorridaPozoUrl();
+      downloadCorridaCsvBtn.disabled = true;
+      corridaDownloadStatus.textContent = 'Descargando corrida-pozo...';
+
+      try {
+        const response = await fetch(url.toString(), { method: 'GET' });
+        const payload = await response.blob();
+
+        if (!response.ok) {
+          const errorText = await payload.text();
+          corridaDownloadStatus.textContent = 'Error al descargar: ' + errorText;
+          return;
+        }
+
+        const downloadUrl = URL.createObjectURL(payload);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = 'corrida_pozo_20min_' + sanitizeFileStamp(corridaFromTimeInput.value) + '_a_' + sanitizeFileStamp(corridaToTimeInput.value) + '.csv';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(downloadUrl);
+
+        corridaDownloadStatus.textContent = 'CSV descargado correctamente.';
+      } catch (error) {
+        corridaDownloadStatus.textContent = 'Fallo de descarga: ' + (error && error.message ? error.message : String(error));
+      } finally {
+        downloadCorridaCsvBtn.disabled = false;
+      }
+    }
+
+    function setGlobalStatus(status, text) {
+      globalDot.classList.remove('ok', 'err');
+      if (status === 'ok') globalDot.classList.add('ok');
+      if (status === 'err') globalDot.classList.add('err');
+      globalStatusText.textContent = text;
+    }
+
+    function makeCard(endpoint) {
+      const article = document.createElement('article');
+      article.className = 'card';
+      article.dataset.endpointKey = endpoint.key;
+
+      article.innerHTML = `
+        <div class="card-head">
+          <span class="method">${endpoint.method}</span>
+          <div class="path" title="${endpoint.path}">${endpoint.path}</div>
+          <button type="button" data-action="fetch">Consultar</button>
+        </div>
+        <div class="card-meta">
+          <strong>${endpoint.title}</strong>
+          <span data-role="status">Sin ejecutar</span>
+        </div>
+        <div class="card-meta">
+          <span data-role="http">HTTP: -</span>
+          <span data-role="latency">Tiempo: -</span>
+          <span data-role="count">Items: -</span>
+        </div>
+        <div class="card-meta">
+          <code data-role="url">URL: -</code>
+        </div>
+        <pre data-role="result">No hay datos todavia.</pre>
+      `;
+
+      const fetchButton = article.querySelector('[data-action="fetch"]');
+      fetchButton.addEventListener('click', function () {
+        fetchEndpoint(endpoint);
+      });
+
+      endpointGrid.appendChild(article);
+      cardMap.set(endpoint.key, {
+        endpoint,
+        article,
+        fetchButton,
+        status: article.querySelector('[data-role="status"]'),
+        http: article.querySelector('[data-role="http"]'),
+        latency: article.querySelector('[data-role="latency"]'),
+        count: article.querySelector('[data-role="count"]'),
+        url: article.querySelector('[data-role="url"]'),
+        result: article.querySelector('[data-role="result"]')
+      });
+    }
+
+    function countItems(payload) {
+      if (Array.isArray(payload)) return payload.length;
+      if (!payload || typeof payload !== 'object') return '-';
+      if (Array.isArray(payload.data)) return payload.data.length;
+      if (Array.isArray(payload.series)) return payload.series.length;
+      if (payload.meta && typeof payload.meta.total === 'number') return payload.meta.total;
+      return Object.keys(payload).length;
+    }
+
+    function buildUrl(endpoint) {
+      const url = new URL(API_PREFIX + endpoint.path, window.location.origin);
+      const params = endpoint.params || [];
+
+      const fromIso = toIsoString(fromTimeInput.value);
+      const toIso = toIsoString(toTimeInput.value);
+      const fechaInicio = toSqlDateTime(fromTimeInput.value);
+      const fechaFin = toSqlDateTime(toTimeInput.value);
+
+      params.forEach(function (paramName) {
+        if (paramName === 'from' && fromIso) {
+          url.searchParams.set('from', fromIso);
+          return;
+        }
+
+        if (paramName === 'to' && toIso) {
+          url.searchParams.set('to', toIso);
+          return;
+        }
+
+        if (paramName === 'stepMin') {
+          url.searchParams.set('stepMin', stepMinInput.value || '1');
+          return;
+        }
+
+        if (paramName === 'alpha') {
+          url.searchParams.set('alpha', alphaInput.value || '0.05');
+          return;
+        }
+
+        if (paramName === 'smooth') {
+          url.searchParams.set('smooth', smoothInput.checked ? '1' : '0');
+          return;
+        }
+
+        if (paramName === 'maxRows') {
+          url.searchParams.set('maxRows', maxRowsInput.value || '200');
+          return;
+        }
+
+        if (paramName === 'fechaInicio' && fechaInicio) {
+          url.searchParams.set('fechaInicio', fechaInicio);
+          return;
+        }
+
+        if (paramName === 'fechaFin' && fechaFin) {
+          url.searchParams.set('fechaFin', fechaFin);
+        }
+      });
+
+      return url;
+    }
+
+    async function parseResponsePayload(response) {
+      const contentType = (response.headers.get('content-type') || '').toLowerCase();
+      if (contentType.includes('application/json')) {
+        return { contentType, payload: await response.json() };
+      }
+      return { contentType, payload: await response.text() };
+    }
+
+    function prettyPayload(payload) {
+      if (typeof payload === 'string') return payload;
+      try {
+        return JSON.stringify(payload, null, 2);
+      } catch (error) {
+        return 'No se pudo serializar la respuesta.';
+      }
+    }
+
+    async function fetchEndpoint(endpoint) {
+      const card = cardMap.get(endpoint.key);
+      const url = buildUrl(endpoint);
+      card.fetchButton.disabled = true;
+      card.status.textContent = 'Consultando...';
+      card.http.textContent = 'HTTP: -';
+      card.latency.textContent = 'Tiempo: -';
+      card.count.textContent = 'Items: -';
+      card.url.textContent = 'URL: ' + url.pathname + (url.search || '');
+
+      const started = performance.now();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(function () {
+        controller.abort();
+      }, 30000);
+
+      try {
+        const response = await fetch(url.toString(), {
+          method: endpoint.method,
+          headers: endpoint.headers || {},
+          signal: controller.signal
+        });
+
+        const parsed = await parseResponsePayload(response);
+        const elapsed = Math.round(performance.now() - started);
+
+        card.http.textContent = 'HTTP: ' + response.status;
+        card.latency.textContent = 'Tiempo: ' + elapsed + ' ms';
+        card.count.textContent = 'Items: ' + countItems(parsed.payload);
+
+        if (!response.ok) {
+          card.status.textContent = 'Error';
+          card.result.textContent = prettyPayload(parsed.payload);
+          return { ok: false, endpoint: endpoint.path };
+        }
+
+        card.status.textContent = 'OK';
+        card.result.textContent = prettyPayload(parsed.payload);
+        return { ok: true, endpoint: endpoint.path, contentType: parsed.contentType };
+      } catch (error) {
+        card.status.textContent = 'Error';
+        card.http.textContent = 'HTTP: -';
+        card.latency.textContent = 'Tiempo: -';
+        card.count.textContent = 'Items: -';
+        card.result.textContent = 'Fallo de consulta: ' + (error && error.message ? error.message : String(error));
+        return { ok: false, endpoint: endpoint.path };
+      } finally {
+        clearTimeout(timeoutId);
+        card.fetchButton.disabled = false;
+      }
+    }
+
+    async function fetchAllEndpoints() {
+      setGlobalStatus('pending', 'Consultando endpoints...');
+      document.getElementById('fetchAllBtn').disabled = true;
+
+      let success = 0;
+      let failed = 0;
+
+      for (const endpoint of ENDPOINTS) {
+        const result = await fetchEndpoint(endpoint);
+        if (result.ok) success += 1;
+        else failed += 1;
+      }
+
+      const now = new Date();
+      lastRun.textContent = now.toLocaleTimeString();
+      if (failed === 0) {
+        setGlobalStatus('ok', 'Consulta completada: ' + success + ' OK');
+      } else {
+        setGlobalStatus('err', 'Consulta completada: ' + success + ' OK / ' + failed + ' con error');
+      }
+
+      document.getElementById('fetchAllBtn').disabled = false;
+    }
+
+    function clearResults() {
+      for (const card of cardMap.values()) {
+        card.status.textContent = 'Sin ejecutar';
+        card.http.textContent = 'HTTP: -';
+        card.latency.textContent = 'Tiempo: -';
+        card.count.textContent = 'Items: -';
+        card.url.textContent = 'URL: -';
+        card.result.textContent = 'No hay datos todavia.';
+      }
+      lastRun.textContent = '-';
+      setGlobalStatus('pending', 'Listo para consultar');
+    }
+
+    function init() {
+      initRangeDefaults();
+      syncCorridaRangeWithGlobal();
+
+      ENDPOINTS.forEach(makeCard);
+      totalEndpoints.textContent = String(ENDPOINTS.length);
+
+      document.getElementById('fetchAllBtn').addEventListener('click', fetchAllEndpoints);
+      document.getElementById('clearBtn').addEventListener('click', clearResults);
+      syncCorridaRangeBtn.addEventListener('click', syncCorridaRangeWithGlobal);
+      downloadCorridaCsvBtn.addEventListener('click', downloadCorridaPozoCsv);
+      corridaFromTimeInput.addEventListener('change', updateCorridaUrlPreview);
+      corridaToTimeInput.addEventListener('change', updateCorridaUrlPreview);
+    }
+
+    init();
+  </script>
+</body>
+</html>
